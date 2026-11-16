@@ -19,12 +19,11 @@ const db = getFirestore(app);
 const TEACHER_PASSWORD = "0486"; 
 
 export default function ClassMonitorApp() {
-  // 세션 스토리지에서 로그인 상태를 읽어와 새로고침해도 유지되게 합니다.
   const [isAuthenticated, setIsAuthenticated] = useState(() => sessionStorage.getItem('classMonitorAuth') === 'true');
   const [inputPassword, setInputPassword] = useState('');
   const [students, setStudents] = useState([]);
   const [currentTime, setCurrentTime] = useState(Date.now());
-  const [isRefreshing, setIsRefreshing] = useState(false); // 새로고침 애니메이션 상태
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -46,7 +45,7 @@ export default function ClassMonitorApp() {
   const handleRefresh = () => {
     setIsRefreshing(true);
     setCurrentTime(Date.now());
-    setTimeout(() => setIsRefreshing(false), 500); // 0.5초 뒤 회전 멈춤
+    setTimeout(() => setIsRefreshing(false), 500);
   };
 
   useEffect(() => {
@@ -82,7 +81,8 @@ export default function ClassMonitorApp() {
     );
   }
 
-  const onlineCount = students.filter(s => (currentTime - parseInt(s.lastPing)) <= 15000).length;
+  // ★ 변경: 오프라인 감지 시간을 15초(15000)에서 30초(30000)로 변경
+  const onlineCount = students.filter(s => (currentTime - parseInt(s.lastPing)) <= 30000).length;
 
   return (
     <div className="min-h-screen bg-slate-100 p-6 md:p-8">
@@ -92,7 +92,8 @@ export default function ClassMonitorApp() {
             <div className="bg-emerald-100 p-3 rounded-2xl"><Monitor className="w-8 h-8 text-emerald-600" /></div>
             <div>
               <h1 className="text-2xl font-black text-slate-800">실시간 크롬북 현황판</h1>
-              <p className="text-slate-500 font-bold text-sm mt-1">15초 이상 신호가 없으면 오프라인(프로그램 중지 의심) 처리됩니다.</p>
+              {/* ★ 텍스트 30초로 변경 */}
+              <p className="text-slate-500 font-bold text-sm mt-1">30초 이상 신호가 없으면 오프라인(프로그램 중지 의심) 처리됩니다.</p>
             </div>
           </div>
           <div className="flex gap-4 items-center">
@@ -115,7 +116,8 @@ export default function ClassMonitorApp() {
              <div className="col-span-full py-20 text-center text-slate-400 font-bold text-xl">아직 확장 프로그램을 실행한 학생이 없습니다.</div>
           ) : (
             students.map((student) => {
-              const isOffline = (currentTime - parseInt(student.lastPing)) > 15000; 
+              // ★ 변경: 카드 오프라인 처리도 30초(30000)로 변경
+              const isOffline = (currentTime - parseInt(student.lastPing)) > 30000; 
               const url = student.currentUrl || "";
               const title = student.title || "";
               const lowerUrl = url.toLowerCase();
