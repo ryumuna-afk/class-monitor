@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Key, AlertTriangle, ShieldCheck, WifiOff } from 'lucide-react';
+import { Monitor, Key, AlertTriangle, ShieldCheck, WifiOff, RefreshCw, LogOut } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { getFirestore, onSnapshot, collection, query } from 'firebase/firestore';
@@ -19,20 +19,34 @@ const db = getFirestore(app);
 const TEACHER_PASSWORD = "0486"; 
 
 export default function ClassMonitorApp() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // 세션 스토리지에서 로그인 상태를 읽어와 새로고침해도 유지되게 합니다.
+  const [isAuthenticated, setIsAuthenticated] = useState(() => sessionStorage.getItem('classMonitorAuth') === 'true');
   const [inputPassword, setInputPassword] = useState('');
   const [students, setStudents] = useState([]);
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const [isRefreshing, setIsRefreshing] = useState(false); // 새로고침 애니메이션 상태
 
   const handleLogin = async (e) => {
     e.preventDefault();
     if (inputPassword === TEACHER_PASSWORD) {
       await signInAnonymously(auth);
+      sessionStorage.setItem('classMonitorAuth', 'true');
       setIsAuthenticated(true);
     } else {
       alert("비밀번호가 틀렸습니다.");
       setInputPassword('');
     }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('classMonitorAuth');
+    setIsAuthenticated(false);
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setCurrentTime(Date.now());
+    setTimeout(() => setIsRefreshing(false), 500); // 0.5초 뒤 회전 멈춤
   };
 
   useEffect(() => {
@@ -58,7 +72,7 @@ export default function ClassMonitorApp() {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <div className="bg-slate-800 p-8 rounded-3xl shadow-2xl max-w-sm w-full space-y-6 text-center border border-slate-700">
           <Monitor className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-black text-white">자습 모니터링 관제탑</h1>
+          <h1 className="text-2xl font-black text-white">로건 자습 모니터링</h1>
           <form onSubmit={handleLogin} className="space-y-4">
             <input type="password" placeholder="비밀번호" value={inputPassword} onChange={(e) => setInputPassword(e.target.value)} className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl focus:border-emerald-500 outline-none text-center text-xl tracking-[0.5em] font-bold text-white" autoFocus />
             <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold transition-colors">접속하기</button>
@@ -81,11 +95,18 @@ export default function ClassMonitorApp() {
               <p className="text-slate-500 font-bold text-sm mt-1">15초 이상 신호가 없으면 오프라인(프로그램 중지 의심) 처리됩니다.</p>
             </div>
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
+            <button onClick={handleRefresh} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors text-slate-600 flex items-center gap-2 font-bold px-4" title="수동 새로고침">
+              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              상태 갱신
+            </button>
             <div className="bg-slate-100 px-6 py-3 rounded-xl flex items-center gap-2">
               <span className="relative flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span>
               <span className="font-black text-slate-700">접속자: {onlineCount}명</span>
             </div>
+            <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 transition-colors" title="로그아웃">
+              <LogOut className="w-6 h-6" />
+            </button>
           </div>
         </div>
 
